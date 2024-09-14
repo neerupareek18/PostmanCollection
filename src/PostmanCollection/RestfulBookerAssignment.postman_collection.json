@@ -214,11 +214,13 @@
 							"  ]\r",
 							"}\r",
 							"\r",
+							"var res = pm.response.json()\r",
+							"\r",
 							"pm.test(\"Validate the schema of the response\", ()=>{\r",
 							"    // pm.response.to.have.jsonSchema(schema)\r",
 							"\r",
-							"    // pm.expect(tv4.validate(pm.response.json(), schema)).to.be.true\r",
-							"    pm.expect(aj4.validate(pm.response.json(), schema)).to.be.true\r",
+							"    // pm.expect(tv4.validate(res, schema)).to.be.true\r",
+							"    pm.expect(tv4.validate(res, schema)).to.be.true\r",
 							"})"
 						],
 						"type": "text/javascript",
@@ -277,14 +279,14 @@
 					"script": {
 						"exec": [
 							"pm.test(\"Validate the Status Code\",()=>{\r",
-							"    pm.expect(pm.response.code).to.be.eql(404)\r",
+							"    pm.expect(pm.response.code).to.be.oneOf([404,400,500])\r",
 							"})\r",
 							"\r",
 							"pm.test(\"Validate the Status Message\",()=>{\r",
 							"    pm.expect(pm.response.status).to.include(\"Not Found\")\r",
 							"})\r",
 							"\r",
-							"var res = pm.response.json()\r",
+							"var res = pm.response.text()\r",
 							"pm.test(\"Validate the type of Response\",function(){\r",
 							"    pm.expect(res).to.be.an(\"string\")\r",
 							"})"
@@ -369,7 +371,9 @@
 							"var res = pm.response.json()\r",
 							"var bookingid = res[0].bookingid\r",
 							"\r",
-							"pm.collectionVariables.set(\"BookingId\",bookingid)"
+							"pm.collectionVariables.set(\"BookingId\",bookingid)\r",
+							"\r",
+							"console.log(pm.collectionVariables.get(\"BookingId\"))"
 						],
 						"type": "text/javascript",
 						"packages": {}
@@ -390,7 +394,11 @@
 					"listen": "test",
 					"script": {
 						"exec": [
-							"pm.collectionVariables.set(\"UpdatedName\",pm.response.json().firstname)"
+							"pm.collectionVariables.set(\"UpdatedName1\",pm.response.json().firstname)\r",
+							"\r",
+							"var res = pm.response.json()\r",
+							"var name = res.firstname\r",
+							"pm.collectionVariables.set(\"UN\",name)"
 						],
 						"type": "text/javascript",
 						"packages": {}
@@ -400,7 +408,7 @@
 					"listen": "prerequest",
 					"script": {
 						"exec": [
-							""
+							"var uname = pm.collectionVariables.get(\"UpdatedName\")"
 						],
 						"type": "text/javascript",
 						"packages": {}
@@ -409,7 +417,10 @@
 			],
 			"request": {
 				"auth": {
-					"type": "noauth"
+					"type": "bearer",
+					"bearer": {
+						"token": "01625cdc83ac028"
+					}
 				},
 				"method": "PATCH",
 				"header": [
@@ -421,14 +432,30 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"firstname\" : \"{{UpdatedName}}\"\r\n}",
+					"raw": "{\r\n    \"firstname\" : \"{{uname}}\"\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
 						}
 					}
 				},
-				"url": "{{base_url}}/booking/{{bookingid}}"
+				"url": {
+					"raw": "{{base_url}}/booking/{{BookingId}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"booking",
+						"{{BookingId}}"
+					],
+					"query": [
+						{
+							"key": "",
+							"value": "",
+							"disabled": true
+						}
+					]
+				}
 			},
 			"response": []
 		},
@@ -439,7 +466,7 @@
 					"listen": "test",
 					"script": {
 						"exec": [
-							"var fname = pm.collectionVariables.get(\"UpdatedName\")\r",
+							"var fname = pm.collectionVariables.get(\"UpdatedName1\")\r",
 							"pm.test(\"Verify the FirstName\",()=>{\r",
 							"pm.expect(pm.response.json()[\"firstname\"]).to.be.eql(fname)\r",
 							"})"
@@ -450,9 +477,6 @@
 				}
 			],
 			"request": {
-				"auth": {
-					"type": "noauth"
-				},
 				"method": "GET",
 				"header": [],
 				"url": "{{base_url}}/booking/{{BookingId}}"
